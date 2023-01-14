@@ -4,13 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "npm run test --prefix client && npm run test --prefix server",
+    "test": "npm test --prefix client && npm test --prefix server",
     "install-server": "npm install --prefix server",
     "install-client": "npm install --prefix client",
     "install": "npm run install-server && npm run install-client",
     "server": "npm run watch --prefix server",
     "client": "npm start --prefix client",
-    "start": "npm run server & npm run client"
+    "start": "npm run server & npm run client",
+    "deploy": "npm run build --prefix client && npm start --prefix server"
   },
   "repository": {
     "type": "git",
