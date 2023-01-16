@@ -1,5 +1,5 @@
-const {mongoPass} = require('../config')
-const MONGO_URL = `mongodb+srv://AnNguyen:${mongoPass}@cluster0.l1lo9qe.mongodb.net/?retryWrites=true&w=majority`
+const {mongoPath} = require('../config')
+const MONGO_URL = mongoPath
 const mongoose = require('mongoose')
 mongoose.set('strictQuery', true)
 mongoose.connection.once('open', () =>{

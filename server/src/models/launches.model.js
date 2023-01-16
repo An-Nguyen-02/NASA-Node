@@ -1,33 +1,77 @@
+const axios = require('axios')
 const launches = require('./launches.mongoose')
 const planets = require('./planets.mongoose')
 
 const DEFAULT_FLIGHT_NUM = 0
-let latestFlightNum = 100;
 
-const launch = {
-    flightNumber: 100,
-    mission: 'mission 1',
-    launchDate: new Date('December 10, 2030'),
-    rocket: 'Space X',
-    target: 'Kepler-442 b',
-    customers: ['An', 'NASA'],
-    upcoming: true,
-    success: true
+const SPACE_X_API = 'https://api.spacexdata.com/v5/launches/query'
+
+const populateSpaceXLaunches = async () => {
+    const dataSpaceX =  await axios.post(SPACE_X_API, {
+        query: {},
+        options: {
+            pagination: false,
+            populate: [
+                {
+                    path: 'rocket',
+                    select: {
+                        name: 1
+                    }
+                },
+                {
+                    path: 'payloads',
+                    select: {
+                        customers: 1
+                    }
+                }
+            ]
+        }
+    })
+    if (dataSpaceX.status !== 200){
+        throw new Error('Problem downloading launch data')
+    }
+
+    const launchDocs = dataSpaceX.data.docs
+    for (const launchDoc of launchDocs){
+        const payloads = launchDoc['payloads']
+        const customers = payloads.flatMap((payload) => {
+            return payload['customers']
+        })
+        const launch = {
+            flight_number: launchDoc['flight_number'],
+            mission: launchDoc['name'],
+            rocket: launchDoc['rocket']['name'],
+            upcoming: launchDoc['upcoming'],
+            success: launchDoc['success'],
+            launchDate: launchDoc['date_local'],
+            customers: customers
+        }
+        await saveLaunch(launch)
+    }
+
+}
+
+const loadLaunchesData = async () => {
+    const existSpaceXData = await launches.findOne({
+        flightNumber: 198,
+        name: "Transporter-6",
+        rocket: "Falcon 9"
+    })
+    if (!existSpaceXData){
+        await populateSpaceXLaunches()
+    } else {
+        console.log('Space X Launches exist')
+    }
+
 }
 
 const saveLaunch = async (launch) => {
-    const planet = await planets.findOne({kepler_name: launch.target})
-    if (!planet){
-        throw new Error('No matching planet found')
-    }
     await launches.findOneAndUpdate({
-        flightNumber : launch.flightNumber
+        flightNumber : launch.flight_number
     }, launch, {
         upsert: true
     })
 }
-
-saveLaunch(launch)
 
 const getLatestFlightNum = async () => {
     const latestLaunch =  await launches.findOne().sort('-flightNumber')
@@ -38,6 +82,10 @@ const getLatestFlightNum = async () => {
 }
 
 const addNewLaunch = async (launch) => {
+    const planet = await planets.findOne({kepler_name: launch.target})
+    if (!planet){
+        throw new Error('No matching planet found')
+    }
     const latestFlightNum = (await getLatestFlightNum()) + 1
     const newLaunch = Object.assign(launch, {
         flightNumber: latestFlightNum,
@@ -48,8 +96,8 @@ const addNewLaunch = async (launch) => {
     await saveLaunch(newLaunch)
 }
 
-const getAllLaunches = async () => {
-    return launches.find({},{'_id':0, '__v':0})
+const getAllLaunches = async (skip, limit) => {
+    return launches.find({},{'_id':0, '__v':0}).sort({flightNumber: 1}).skip(skip).limit(limit)
 }
 
 const checkLaunchIdExist = async (launchId) => {
@@ -68,5 +116,6 @@ module.exports = {
     getAllLaunches,
     addNewLaunch,
     checkLaunchIdExist,
-    abortLaunchById
+    abortLaunchById,
+    loadLaunchesData
 }
