@@ -5,11 +5,11 @@ const {
     abortLaunchById
 } = require('../../models/launches.model')
 
-const httpGetAllLaunches = (req, res) => {
-    return res.status(200).json(getAllLaunches())
+const httpGetAllLaunches = async (req, res) => {
+    return res.status(200).json(await getAllLaunches())
 }
 
-const httpAddNewLaunch = (req, res) => {
+const httpAddNewLaunch = async (req, res) => {
     const launch = req.body
     if (!launch.launchDate || !launch.mission || !launch.target || !launch.rocket){
         return res.status(400).json({
@@ -22,19 +22,23 @@ const httpAddNewLaunch = (req, res) => {
             error: 'wrong format date, should be for example: January 20, 2028'
         })
     }
-    addNewLaunch(launch)
+    await addNewLaunch(launch)
     return res.status(201).json(launch)
 }
 
-const httpDeleteLaunchWithId = (req, res) => {
+const httpDeleteLaunchWithId = async (req, res) => {
     const launchId = Number(req.params.id);
-
-    if (!checkLaunchIdExist(launchId)){
+    const launchExist = await checkLaunchIdExist(launchId)
+    if (!launchExist){
         return res.status(404).json({
             error: 'Launch ID not found'
         })
     }
-    return res.status(200).json(abortLaunchById(launchId))
+    const aborted = await abortLaunchById(launchId)
+    if (!aborted){
+        return res.status(400).json({error: 'Launch abort error'})
+    }
+    return res.status(200).json({ok: true})
 }
 
 module.exports = {

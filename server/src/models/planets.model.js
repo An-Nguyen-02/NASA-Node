@@ -3,8 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const {parse} = require('csv-parse');
 
-
-const habitablePlanets = [];
+const planets = require('./planets.mongoose')
 
 function isHabitablePlanet(planet) {
   return planet['koi_disposition'] === 'CONFIRMED'
@@ -19,24 +18,43 @@ return new Promise((resolve,reject) => {
     comment: '#',
     columns: true,
   }))
-  .on('data', (data) => {
+  .on('data', async (data) => {
     if (isHabitablePlanet(data)) {
-      habitablePlanets.push(data);
+      savePlanet(data)
     }
   })
   .on('error', (err) => {
     console.log(err);
     reject(err)
   })
-  .on('end', () => {
-    console.log(`${habitablePlanets.length} habitable planets found!`);
+  .on('end', async() => {
+    const numPlanets = (await getAllPlanets()).length
+    console.log(`${numPlanets} habitable planets found!`);
     resolve()
   });
 
 })}
 
-const getAllPlanets = () => {
-  return habitablePlanets;
+const getAllPlanets = async () => {
+  return await planets.find({}, {
+    '_id': 0,
+    '__v': 0
+  });
+}
+
+const savePlanet = async (planet) => {
+  try {
+
+    await planets.updateOne({
+      kepler_name: planet.kepler_name
+    }, {
+      kepler_name: planet.kepler_name
+    }, {
+      upsert: true
+    })
+  } catch(err) {
+    console.log(`Could not save planet info: ${err}`)
+  }
 }
 
 module.exports = {
