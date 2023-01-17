@@ -16,7 +16,7 @@ describe('Test launches API', () => {
     describe('GET/launches',() => {
         test ('Get all launches', async () => {
             const response = await request(app)
-                            .get('/launches')
+                            .get('/v1/launches')
                             .expect('Content-Type',/json/)
                             .expect(200)
         })
@@ -43,7 +43,7 @@ describe('Test launches API', () => {
         }
         test ('Post correct', async () => {
             const response = await request(app)
-                            .post('/launches')
+                            .post('/v1/launches')
                             .send(launchWithDate)
                             .expect(201)
                             .expect('Content-Type',/json/)
@@ -55,7 +55,7 @@ describe('Test launches API', () => {
     
             test ('Post missing launch property', async () => {
             const response = await request(app)
-                            .post('/launches')
+                            .post('/v1/launches')
                             .send(launchWithoutDate)
                             .expect(400)
                             .expect('Content-Type',/json/)
@@ -66,7 +66,7 @@ describe('Test launches API', () => {
     
             test ('Post wrong date', async () => {
                     const response = await request(app)
-                            .post('/launches')
+                            .post('/v1/launches')
                             .send(launchWithWrongDate)
                             .expect(400)
                             .expect('Content-Type',/json/)
